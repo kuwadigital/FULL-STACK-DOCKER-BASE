@@ -1,0 +1,94 @@
+# =============================================================================
+# FRONTEND DOCKER COMPOSE CONFIGURATION
+# =============================================================================
+# Services disponibles:
+#   - node: Application Node.js (SvelteKit) pour le développement
+#   - nginx: Serveur web pour la production (sert les fichiers statiques)
+#   - redis: Cache pour les sessions et données temporaires
+# =============================================================================
+
+services:
+  # ---------------------------------------------------------------------------
+  # Node.js - Application SvelteKit (Développement)
+  # ---------------------------------------------------------------------------
+  node:
+    build:
+      context: ./node
+      args:
+        NODE_VERSION: ${NODE_VERSION}
+    env_file:
+      - .env
+    environment:
+      - NODE_ENV=${NODE_ENV}
+      - VITE_HOST=${VITE_HOST}
+    volumes:
+      - ../src:/app                          # Monte le code source
+      - node_modules:/app/node_modules       # Volume pour les dépendances (performance)
+      - pnpm_store:/root/.local/share/pnpm   # Cache pnpm pour builds plus rapides
+    ports:
+      - "${APP_DEV_PORT}:5173"               # Port Vite dev server
+      - "${APP_PREVIEW_PORT}:4173"           # Port Vite preview
+    working_dir: /app
+    command: sh -c "pnpm install && pnpm dev --host"
+    tty: true
+    stdin_open: true
+    depends_on:
+      - redis
+    networks:
+      - frontend_network
+
+  # ---------------------------------------------------------------------------
+  # Nginx - Serveur web (Production)
+  # ---------------------------------------------------------------------------
+  nginx:
+    build:
+      context: ./nginx
+      args:
+        NGINX_VERSION: ${NGINX_VERSION}
+    profiles: ["production"]
+    volumes:
+      - ../src/build:/usr/share/nginx/html:ro    # Fichiers buildés
+      - ./logs/nginx:/var/log/nginx              # Logs Nginx
+      - ./nginx/conf.d:/etc/nginx/conf.d:ro      # Configuration Nginx
+    ports:
+      - "${APP_PROD_PORT}:80"
+    depends_on:
+      - redis
+    networks:
+      - frontend_network
+
+  # ---------------------------------------------------------------------------
+  # Redis - Cache
+  # ---------------------------------------------------------------------------
+  redis:
+    build:
+      context: ./redis
+      args:
+        REDIS_VERSION: ${REDIS_VERSION}
+    env_file:
+      - .env
+    volumes:
+      - redis_data:/data
+    ports:
+      - "${REDIS_PORT}:6379"
+    networks:
+      - frontend_network
+
+# =============================================================================
+# Volumes
+# =============================================================================
+volumes:
+  node_modules:
+    name: frontend_node_modules
+  pnpm_store:
+    name: frontend_pnpm_store
+  redis_data:
+    name: frontend_redis_data
+
+# =============================================================================
+# Networks
+# =============================================================================
+networks:
+  frontend_network:
+    name: frontend_network
+    driver: bridge
