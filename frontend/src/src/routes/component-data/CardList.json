@@ -1,0 +1,14 @@
+{
+  "name": "CardList",
+  "type": {
+    "name": "CardListProps",
+    "link": "https://github.com/themesberg/flowbite-svelte-admin-dashboard/blob/main/src/lib/types.ts#L436"
+  },
+  "props": [
+    ["title", ""],
+    ["subtitle", ""],
+    ["buttonLabel", "'Save all'"],
+    ["items", "[]"],
+    ["class: className", ""]
+  ]
+}

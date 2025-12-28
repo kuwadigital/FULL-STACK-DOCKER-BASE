@@ -1,0 +1,11 @@
+{
+  "name": "DarkChart",
+  "type": {
+    "name": "Props",
+    "link": null
+  },
+  "props": [
+    ["configFunc", ""],
+    ["class: className", ""]
+  ]
+}

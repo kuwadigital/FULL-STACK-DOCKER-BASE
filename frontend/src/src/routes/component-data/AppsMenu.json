@@ -1,0 +1,11 @@
+{
+  "name": "AppsMenu",
+  "type": {
+    "name": "AppsMenuProps",
+    "link": "https://github.com/themesberg/flowbite-svelte-admin-dashboard/blob/main/src/lib/types.ts#L12"
+  },
+  "props": [
+    ["open", "$bindable()"],
+    ["menu", ""]
+  ]
+}

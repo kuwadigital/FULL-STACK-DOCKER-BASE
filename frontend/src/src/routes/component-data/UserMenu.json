@@ -1,0 +1,15 @@
+{
+  "name": "UserMenu",
+  "type": {
+    "name": "UserMenuProps",
+    "link": "https://github.com/themesberg/flowbite-svelte-admin-dashboard/blob/main/src/lib/types.ts#L125"
+  },
+  "props": [
+    ["name", ""],
+    ["avatar", ""],
+    ["email", ""],
+    ["menuItems", ""],
+    ["children", ""],
+    ["placement", "'bottom-end'"]
+  ]
+}
