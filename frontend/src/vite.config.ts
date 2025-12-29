@@ -13,6 +13,9 @@ import flowbitesvelteiconsPackage from './node_modules/flowbite-svelte-icons/pac
 import tailwindmergePackage from './node_modules/tailwind-merge/package.json' with { type: 'json' };
 
 export default defineConfig({
+  server: {
+    allowedHosts: ['.localhost', '.local']
+  },
   plugins: [tailwindcss(), sveltekit(), devtoolsJson()],
   define: {
     __NAME__: JSON.stringify(pkg.name),

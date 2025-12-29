@@ -1,0 +1,24 @@
+{
+  "routes": {
+    "parse.local": {
+      "url": "https://api.local/webhooks/inbound-email",
+      "raw": false,
+      "spam_check": true
+    },
+    "notifications.local": {
+      "url": "https://api.local/webhooks/notifications",
+      "raw": false,
+      "spam_check": false
+    },
+    "support.local": {
+      "url": "https://api.local/webhooks/support",
+      "raw": true,
+      "spam_check": true
+    }
+  },
+  "defaultRoute": {
+    "url": "https://api.local/webhooks/default",
+    "raw": false,
+    "spam_check": false
+  }
+}

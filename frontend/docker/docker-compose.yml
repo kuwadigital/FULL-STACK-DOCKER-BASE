@@ -5,6 +5,8 @@
 #   - node: Application Node.js (SvelteKit) pour le développement
 #   - nginx: Serveur web pour la production (sert les fichiers statiques)
 #   - redis: Cache pour les sessions et données temporaires
+#
+# Utilise le .env global de la racine du projet via --env-file dans le Makefile
 # =============================================================================
 
 services:
@@ -15,19 +17,22 @@ services:
     build:
       context: ./node
       args:
-        NODE_VERSION: ${NODE_VERSION}
-    env_file:
-      - .env
+        NODE_VERSION: ${NODE_VERSION:-22}
+    container_name: abs_frontend_node
     environment:
-      - NODE_ENV=${NODE_ENV}
-      - VITE_HOST=${VITE_HOST}
+      - NODE_ENV=${NODE_ENV:-development}
+      - VITE_HOST=0.0.0.0
+      - VITE_API_URL=https://${BACKEND_HOST:-api.local}
+      - VITE_AUTH_URL=https://${AUTH_HOST:-auth.local}
+      - VITE_KEYCLOAK_REALM=${KEYCLOAK_REALM:-abs-app}
+      - VITE_KEYCLOAK_CLIENT=${KEYCLOAK_FRONTEND_CLIENT:-abs-frontend}
     volumes:
       - ../src:/app                          # Monte le code source
       - node_modules:/app/node_modules       # Volume pour les dépendances (performance)
       - pnpm_store:/root/.local/share/pnpm   # Cache pnpm pour builds plus rapides
     ports:
-      - "${APP_DEV_PORT}:5173"               # Port Vite dev server
-      - "${APP_PREVIEW_PORT}:4173"           # Port Vite preview
+      - "${FRONTEND_DEV_PORT:-5173}:5173"    # Port Vite dev server
+      - "${FRONTEND_PREVIEW_PORT:-4173}:4173" # Port Vite preview
     working_dir: /app
     command: sh -c "pnpm install && pnpm dev --host"
     tty: true
@@ -35,7 +40,15 @@ services:
     depends_on:
       - redis
     networks:
-      - frontend_network
+      - abs_frontend_network
+      - abs_services_network
+    labels:
+      - "traefik.enable=true"
+      # Routage HTTP pour le dev
+      - "traefik.http.routers.frontend-dev.rule=Host(`${FRONTEND_HOST:-app.local}`)"
+      - "traefik.http.routers.frontend-dev.entrypoints=websecure"
+      - "traefik.http.routers.frontend-dev.tls=true"
+      - "traefik.http.services.frontend-dev.loadbalancer.server.port=5173"
 
   # ---------------------------------------------------------------------------
   # Nginx - Serveur web (Production)
@@ -44,18 +57,27 @@ services:
     build:
       context: ./nginx
       args:
-        NGINX_VERSION: ${NGINX_VERSION}
+        NGINX_VERSION: ${NGINX_FRONTEND_VERSION:-1.27}
+    container_name: abs_frontend_nginx
     profiles: ["production"]
     volumes:
       - ../src/build:/usr/share/nginx/html:ro    # Fichiers buildés
       - ./logs/nginx:/var/log/nginx              # Logs Nginx
       - ./nginx/conf.d:/etc/nginx/conf.d:ro      # Configuration Nginx
     ports:
-      - "${APP_PROD_PORT}:80"
+      - "${FRONTEND_PROD_PORT:-3000}:80"
     depends_on:
       - redis
     networks:
-      - frontend_network
+      - abs_frontend_network
+      - abs_services_network
+    labels:
+      - "traefik.enable=true"
+      # Routage HTTPS pour la production
+      - "traefik.http.routers.frontend-prod.rule=Host(`${FRONTEND_HOST:-app.local}`)"
+      - "traefik.http.routers.frontend-prod.entrypoints=websecure"
+      - "traefik.http.routers.frontend-prod.tls=true"
+      - "traefik.http.services.frontend-prod.loadbalancer.server.port=80"
 
   # ---------------------------------------------------------------------------
   # Redis - Cache
@@ -64,31 +86,33 @@ services:
     build:
       context: ./redis
       args:
-        REDIS_VERSION: ${REDIS_VERSION}
-    env_file:
-      - .env
+        REDIS_VERSION: ${REDIS_FRONTEND_VERSION:-7}
+    container_name: abs_frontend_redis
     volumes:
       - redis_data:/data
     ports:
-      - "${REDIS_PORT}:6379"
+      - "${REDIS_FRONTEND_PORT:-6380}:6379"
     networks:
-      - frontend_network
+      - abs_frontend_network
 
 # =============================================================================
 # Volumes
 # =============================================================================
 volumes:
   node_modules:
-    name: frontend_node_modules
+    name: abs_frontend_node_modules
   pnpm_store:
-    name: frontend_pnpm_store
+    name: abs_frontend_pnpm_store
   redis_data:
-    name: frontend_redis_data
+    name: abs_frontend_redis_data
 
 # =============================================================================
 # Networks
 # =============================================================================
 networks:
-  frontend_network:
-    name: frontend_network
-    driver: bridge
+  abs_frontend_network:
+    name: ${NETWORK_FRONTEND:-abs_frontend_network}
+    external: true
+  abs_services_network:
+    name: ${NETWORK_SERVICES:-abs_services_network}
+    external: true

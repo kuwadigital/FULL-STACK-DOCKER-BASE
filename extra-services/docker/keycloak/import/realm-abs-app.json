@@ -1,0 +1,241 @@
+{
+  "realm": "abs-app",
+  "enabled": true,
+  "displayName": "ABS Application",
+  "displayNameHtml": "<strong>ABS Application</strong>",
+  "loginTheme": "keycloak",
+  "accountTheme": "keycloak.v2",
+  "adminTheme": "keycloak.v2",
+  "emailTheme": "keycloak",
+  "sslRequired": "external",
+  "registrationAllowed": true,
+  "registrationEmailAsUsername": true,
+  "rememberMe": true,
+  "verifyEmail": false,
+  "loginWithEmailAllowed": true,
+  "duplicateEmailsAllowed": false,
+  "resetPasswordAllowed": true,
+  "editUsernameAllowed": false,
+  "bruteForceProtected": true,
+  "permanentLockout": false,
+  "maxFailureWaitSeconds": 900,
+  "minimumQuickLoginWaitSeconds": 60,
+  "waitIncrementSeconds": 60,
+  "quickLoginCheckMilliSeconds": 1000,
+  "maxDeltaTimeSeconds": 43200,
+  "failureFactor": 5,
+  "defaultSignatureAlgorithm": "RS256",
+  "accessTokenLifespan": 300,
+  "accessTokenLifespanForImplicitFlow": 900,
+  "ssoSessionIdleTimeout": 1800,
+  "ssoSessionMaxLifespan": 36000,
+  "ssoSessionIdleTimeoutRememberMe": 0,
+  "ssoSessionMaxLifespanRememberMe": 0,
+  "offlineSessionIdleTimeout": 2592000,
+  "offlineSessionMaxLifespanEnabled": false,
+  "offlineSessionMaxLifespan": 5184000,
+  "clientSessionIdleTimeout": 0,
+  "clientSessionMaxLifespan": 0,
+  "accessCodeLifespan": 60,
+  "accessCodeLifespanUserAction": 300,
+  "accessCodeLifespanLogin": 1800,
+  "actionTokenGeneratedByAdminLifespan": 43200,
+  "actionTokenGeneratedByUserLifespan": 300,
+  "oauth2DeviceCodeLifespan": 600,
+  "oauth2DevicePollingInterval": 5,
+  "smtpServer": {
+    "host": "greenmail",
+    "port": "3025",
+    "from": "noreply@auth.local",
+    "fromDisplayName": "ABS Application",
+    "ssl": "false",
+    "starttls": "false"
+  },
+  "roles": {
+    "realm": [
+      {
+        "name": "admin",
+        "description": "Administrator role",
+        "composite": false
+      },
+      {
+        "name": "user",
+        "description": "Standard user role",
+        "composite": false
+      },
+      {
+        "name": "moderator",
+        "description": "Moderator role",
+        "composite": false
+      }
+    ],
+    "client": {
+      "abs-frontend": [
+        {
+          "name": "app-user",
+          "description": "Frontend application user"
+        }
+      ],
+      "abs-backend": [
+        {
+          "name": "api-access",
+          "description": "API access role"
+        }
+      ]
+    }
+  },
+  "groups": [
+    {
+      "name": "Administrators",
+      "path": "/Administrators",
+      "realmRoles": ["admin"]
+    },
+    {
+      "name": "Users",
+      "path": "/Users",
+      "realmRoles": ["user"]
+    },
+    {
+      "name": "Moderators",
+      "path": "/Moderators",
+      "realmRoles": ["moderator"]
+    }
+  ],
+  "defaultGroups": ["/Users"],
+  "requiredCredentials": ["password"],
+  "passwordPolicy": "length(8) and notUsername",
+  "clients": [
+    {
+      "clientId": "abs-frontend",
+      "name": "ABS Frontend Application",
+      "description": "SvelteKit frontend application",
+      "enabled": true,
+      "publicClient": true,
+      "standardFlowEnabled": true,
+      "implicitFlowEnabled": false,
+      "directAccessGrantsEnabled": true,
+      "serviceAccountsEnabled": false,
+      "authorizationServicesEnabled": false,
+      "protocol": "openid-connect",
+      "rootUrl": "https://app.local",
+      "baseUrl": "https://app.local",
+      "redirectUris": [
+        "https://app.local/*",
+        "http://localhost:5173/*",
+        "http://localhost:3000/*"
+      ],
+      "webOrigins": [
+        "https://app.local",
+        "http://localhost:5173",
+        "http://localhost:3000"
+      ],
+      "attributes": {
+        "pkce.code.challenge.method": "S256",
+        "post.logout.redirect.uris": "https://app.local/*##http://localhost:5173/*##http://localhost:3000/*"
+      },
+      "defaultClientScopes": [
+        "web-origins",
+        "acr",
+        "profile",
+        "roles",
+        "email"
+      ],
+      "optionalClientScopes": [
+        "address",
+        "phone",
+        "offline_access",
+        "microprofile-jwt"
+      ]
+    },
+    {
+      "clientId": "abs-backend",
+      "name": "ABS Backend API",
+      "description": "PHP backend API",
+      "enabled": true,
+      "publicClient": false,
+      "standardFlowEnabled": false,
+      "implicitFlowEnabled": false,
+      "directAccessGrantsEnabled": false,
+      "serviceAccountsEnabled": true,
+      "authorizationServicesEnabled": false,
+      "protocol": "openid-connect",
+      "secret": "backend-client-secret-change-in-production",
+      "rootUrl": "https://api.local",
+      "baseUrl": "https://api.local",
+      "redirectUris": [
+        "https://api.local/*"
+      ],
+      "webOrigins": [
+        "https://api.local"
+      ],
+      "defaultClientScopes": [
+        "web-origins",
+        "acr",
+        "profile",
+        "roles",
+        "email"
+      ]
+    }
+  ],
+  "users": [
+    {
+      "username": "admin@abs.local",
+      "email": "admin@abs.local",
+      "emailVerified": true,
+      "enabled": true,
+      "firstName": "Admin",
+      "lastName": "User",
+      "groups": ["/Administrators", "/Users"],
+      "realmRoles": ["admin", "user"],
+      "credentials": [
+        {
+          "type": "password",
+          "value": "admin12345",
+          "temporary": false
+        }
+      ]
+    },
+    {
+      "username": "user@abs.local",
+      "email": "user@abs.local",
+      "emailVerified": true,
+      "enabled": true,
+      "firstName": "Regular",
+      "lastName": "User",
+      "groups": ["/Users"],
+      "realmRoles": ["user"],
+      "credentials": [
+        {
+          "type": "password",
+          "value": "user12345",
+          "temporary": false
+        }
+      ]
+    },
+    {
+      "username": "moderator@abs.local",
+      "email": "moderator@abs.local",
+      "emailVerified": true,
+      "enabled": true,
+      "firstName": "Moderator",
+      "lastName": "User",
+      "groups": ["/Moderators", "/Users"],
+      "realmRoles": ["moderator", "user"],
+      "credentials": [
+        {
+          "type": "password",
+          "value": "moderator12345",
+          "temporary": false
+        }
+      ]
+    }
+  ],
+  "browserSecurityHeaders": {
+    "contentSecurityPolicyReportOnly": "",
+    "xContentTypeOptions": "nosniff",
+    "referrerPolicy": "strict-origin-when-cross-origin",
+    "xRobotsTag": "none",
+    "xFrameOptions": "SAMEORIGIN",
+    "contentSecurityPolicy": "frame-src 'self'; frame-ancestors 'self' https://app.local; object-src 'none';"
+  }
+}

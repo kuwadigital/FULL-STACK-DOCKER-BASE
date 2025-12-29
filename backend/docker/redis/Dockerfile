@@ -1,4 +1,4 @@
-ARG REDIS_VERSION
+ARG REDIS_VERSION=7
 FROM redis:${REDIS_VERSION}-alpine
 
 # Copie du fichier de configuration Redis

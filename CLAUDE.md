@@ -4,254 +4,343 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-ABS-WEB is a full-stack web application template with:
-- **Frontend**: SvelteKit application with Docker environment
-- **Backend**: PHP application with Docker environment
+ABS-WEB is a full-stack web application template with a complete development infrastructure:
+- **Frontend**: SvelteKit application (Svelte 5, TypeScript, Tailwind CSS 4)
+- **Backend**: PHP application (PHP 8.3, Nginx, MySQL/PostgreSQL/MongoDB)
+- **Extra Services**: Development infrastructure (Traefik, Keycloak, Greenmail, Inbound Parse)
 
-Both frontend and backend are designed as **independent applications** with their own Docker configurations, Makefiles, and environment variables.
+All three modules are designed as **independent applications** that work together via a **global configuration** (.env at root).
 
 ## Repository Structure
 
 ```
 ABS-WEB/
-├── frontend/                    # Frontend application (independent)
-│   ├── docker/                  # Docker configuration
-│   │   ├── docker-compose.yml
-│   │   ├── .env
-│   │   ├── node/               # Node.js container
-│   │   ├── nginx/              # Nginx container (production)
-│   │   ├── redis/              # Redis container (cache)
-│   │   └── logs/
-│   ├── src/                    # SvelteKit application
-│   │   ├── src/
-│   │   │   ├── lib/           # Reusable Svelte components
-│   │   │   └── routes/        # SvelteKit file-based routing
-│   │   └── static/
-│   ├── Makefile
-│   └── README.md
+├── .env                         # GLOBAL CONFIG - Central control for everything
+├── Makefile                     # Global commands for all modules
+├── CLAUDE.md                    # This file
 │
-└── backend/                    # Backend application (independent)
-    ├── docker/                 # Docker configuration
-    │   ├── docker-compose.yml
-    │   ├── .env
-    │   ├── php/               # PHP-FPM container
-    │   ├── nginx/             # Nginx container
-    │   ├── mysql/             # MySQL container
-    │   ├── postgres/          # PostgreSQL container
-    │   ├── mongo/             # MongoDB container
-    │   ├── redis/             # Redis container
-    │   └── logs/
-    ├── src/                   # PHP application code
-    ├── db/                    # SQL dump files
-    ├── Makefile
-    └── README.md
+├── frontend/                    # Frontend application
+│   ├── docker/
+│   │   ├── docker-compose.yml   # Uses global .env via --env-file
+│   │   ├── node/Dockerfile
+│   │   ├── nginx/Dockerfile
+│   │   └── redis/Dockerfile
+│   └── src/                     # SvelteKit application
+│       ├── src/lib/             # Components
+│       └── src/routes/          # Pages
+│
+├── backend/                     # Backend application
+│   ├── docker/
+│   │   ├── docker-compose.yml   # Uses global .env via --env-file
+│   │   ├── php/Dockerfile
+│   │   ├── nginx/Dockerfile
+│   │   └── mysql/postgres/mongo/redis/
+│   └── src/                     # PHP application
+│
+├── extra-services/              # Infrastructure services
+│   └── docker/
+│       ├── docker-compose.yml
+│       ├── traefik/             # Reverse proxy + SSL
+│       │   ├── config/
+│       │   └── certs/
+│       ├── keycloak/            # Identity & Access Management
+│       │   └── import/          # Pre-configured realm
+│       └── inbound-parse/       # SendGrid Inbound Parse simulator
+│           ├── app/             # Node.js SMTP + HTTP server
+│           └── config/
+│
+└── docs/                        # Documentation
+    ├── 00-getting-started.md
+    ├── 01-architecture.md
+    ├── 02-configuration.md
+    ├── 03-services.md
+    └── 04-development.md
 ```
 
-## Frontend Commands
+## Requirements
 
-Run from `frontend/` directory.
+- **Docker Engine 24+** with Docker Compose v2 (`docker compose`, not `docker-compose`)
+- Add entries to `/etc/hosts` (see Quick Start)
+- Ports 80, 443, 5173, 8000, 8080 available
 
-### Docker Commands (Recommended)
+## Quick Start
 
 ```bash
-cd frontend
+# 1. Initialize (creates networks, certs, builds images)
+make init
 
-# Build
-make docker-build              # Build Docker images
+# 2. Add to /etc/hosts
+127.0.0.1   app.local api.local auth.local mail.local traefik.local parse.local
 
-# Development
-make docker-start-dev          # Start dev environment (Node + Redis)
-make docker-start-dev-attached # Start with logs in terminal
+# 3. Start everything
+make start
 
-# Production
-make app-build                 # Build the app first
-make docker-start-prod         # Start prod environment (Nginx + Redis)
-
-# Stop/Clean
-make docker-stop               # Stop containers
-make docker-down               # Stop and remove containers
-make docker-clean              # Reset (remove volumes too)
-
-# Container Access
-make docker-shell-node         # Shell into Node container
-make docker-shell-redis        # Redis CLI
-make docker-logs               # View all logs
-make docker-logs-node          # Node logs only
-
-# Application (in container)
-make app-install               # pnpm install
-make app-dev                   # pnpm dev
-make app-build                 # pnpm build
-make app-check                 # TypeScript check
-make app-lint                  # Lint code
-make app-format                # Format code
-make app-test                  # Run all tests
-make app-test-unit             # Unit tests (Vitest)
-make app-test-e2e              # E2E tests (Playwright)
+# 4. View URLs
+make urls
 ```
 
-### Local Commands (without Docker)
+## Global Commands (from root directory)
+
+### Essential Commands
 
 ```bash
-cd frontend
-make local-dev                 # pnpm dev locally
-make local-build               # pnpm build locally
-make local-test                # pnpm test locally
+make help                  # Show all available commands
+make init                  # Full initialization (networks, certs, build)
+make start                 # Start everything (services, backend, frontend)
+make start-dev             # Start in development mode
+make stop                  # Stop everything
+make restart               # Restart everything
+make status                # Show status of all containers
+make urls                  # Show all application URLs
+make clean                 # Full reset (WARNING: deletes all data)
 ```
 
-### Direct pnpm Commands
+### Individual Module Control
 
 ```bash
-cd frontend/src
-pnpm dev                       # Development server
-pnpm build                     # Production build
-pnpm preview                   # Preview build
-pnpm check                     # TypeScript check
-pnpm lint                      # Lint
-pnpm format                    # Format
-pnpm test                      # All tests
-pnpm test:unit                 # Unit tests
-pnpm test:e2e                  # E2E tests
+# Extra Services (Traefik, Keycloak, Greenmail, etc.)
+make start-services
+make stop-services
+make logs-services
+
+# Frontend
+make start-frontend        # Development mode
+make start-frontend-prod   # Production mode (Nginx)
+make stop-frontend
+make logs-frontend
+make shell-node
+
+# Backend
+make start-backend         # MySQL (default)
+make start-backend-mysql
+make start-backend-postgres
+make start-backend-mongo
+make stop-backend
+make logs-backend
+make shell-php
 ```
 
-## Backend Commands
-
-Run from `backend/` directory.
+### Database CLI
 
 ```bash
-cd backend
-
-# Docker Environment
-make docker-build              # Build Docker images
-make docker-start              # Start with MySQL (default)
-make docker-start-postgres     # Start with PostgreSQL
-make docker-start-mongo        # Start with MongoDB
-make docker-stop               # Stop containers
-make docker-down               # Stop and remove containers
-make docker-clean              # Reset (remove volumes too)
-
-# Container Access
-make docker-shell-php          # Shell into PHP container
-make docker-logs               # View logs
-
-# PHP Dependencies
-make app-composer-install      # Install Composer dependencies
-make app-composer-update       # Update Composer dependencies
-
-# Testing
-make app-test                  # Run PHPUnit tests
-
-# Database CLI
-make docker-mysql-cli          # MySQL shell
-make docker-psql-cli           # PostgreSQL shell
-make docker-mongo-cli          # MongoDB shell
-make docker-redis-cli          # Redis shell
-
-# Database Import/Export
-make app-db-mysql-import       # Import db/db.sql to MySQL
-make app-db-mysql-export       # Export MySQL to db/db.sql
-make app-db-psql-import        # Import to PostgreSQL
-make app-db-psql-export        # Export from PostgreSQL
+make db-mysql-cli
+make db-postgres-cli
+make db-mongo-cli
+make db-redis-cli
+make db-keycloak-cli       # Keycloak's PostgreSQL
 ```
+
+## Application URLs
+
+| Service | URL | Credentials |
+|---------|-----|-------------|
+| Frontend | https://app.local | - |
+| Backend API | https://api.local | - |
+| Traefik Dashboard | https://traefik.local | - |
+| Keycloak | https://auth.local | admin / admin |
+| Roundcube | https://mail.local | user1 / password1 |
+| Inbound Parse | https://parse.local | - |
+
+### Direct Access (Development)
+
+| Service | URL |
+|---------|-----|
+| Frontend Dev | http://localhost:5173 |
+| Adminer | http://localhost:8081 |
+| Greenmail API | http://localhost:8082 |
+| RabbitMQ | http://localhost:15672 |
 
 ## Architecture
 
-### Frontend (SvelteKit with Docker)
+### Technology Stack
 
-**Stack:**
-- SvelteKit 2.x with Svelte 5 (runes syntax)
-- Tailwind CSS 4.x + Flowbite Svelte
-- Vitest + Playwright
+**Frontend:**
+- SvelteKit 2.x with Svelte 5 (runes syntax: `$state`, `$derived`, `$effect`)
+- TypeScript
+- Tailwind CSS 4.x
+- Flowbite Svelte (UI components)
+- Vitest + Playwright (testing)
 - Node.js 22 (Docker)
 - Redis 7 (cache)
-- Nginx 1.27 (production)
 
-**Docker Services:**
-| Service | Purpose | Port |
-|---------|---------|------|
-| `node` | Development server | 5173 |
-| `nginx` | Production server | 3000 |
-| `redis` | Cache | 6380 |
+**Backend:**
+- PHP 8.3 with PHP-FPM
+- Nginx 1.27
+- MySQL 8.0 / PostgreSQL 16 / MongoDB 7 (selectable via profiles)
+- Redis 7 (cache)
+- RabbitMQ 4.0 (queues)
+
+**Extra Services:**
+- Traefik latest (reverse proxy, SSL termination)
+- Keycloak 26.0 (OpenID Connect, authentication)
+- Greenmail 2.0.1 (email server for development)
+- Roundcube 1.6.x (webmail interface)
+- Inbound Parse Simulator (SendGrid webhook simulation)
+
+### Docker Networks
+
+| Network | Purpose |
+|---------|---------|
+| `abs_frontend_network` | Frontend services |
+| `abs_backend_network` | Backend services |
+| `abs_services_network` | Shared infrastructure (Traefik, Keycloak, etc.) |
+
+All modules connect to `abs_services_network` to access shared infrastructure.
+
+## Configuration
+
+### Global .env (Root)
+
+The `.env` file at root is the **central control** for all configuration:
+
+```ini
+# Domains
+FRONTEND_HOST=app.local
+BACKEND_HOST=api.local
+AUTH_HOST=auth.local
+
+# Versions
+TRAEFIK_VERSION=latest
+NODE_VERSION=22
+PHP_VERSION=8.3
+
+# Ports
+FRONTEND_DEV_PORT=5173
+BACKEND_PORT=8000
+
+# Keycloak
+KEYCLOAK_ADMIN=admin
+KEYCLOAK_ADMIN_PASSWORD=admin
+KEYCLOAK_REALM=abs-app
+
+# Database
+MYSQL_DATABASE=abs_db
+MYSQL_USER=abs_user
+MYSQL_PASSWORD=abs_secret
+```
+
+### Local Overrides
+
+Local `.env` files in `frontend/docker/` and `backend/docker/` can override global values for specific use cases.
+
+## Frontend Development
+
+### Key Patterns
+
+**Svelte 5 Runes:**
+```svelte
+<script lang="ts">
+  let count = $state(0);
+  let doubled = $derived(count * 2);
+
+  $effect(() => {
+    console.log('Count changed:', count);
+  });
+</script>
+```
 
 **Route Groups:**
 - `(sidebar)` - Pages with sidebar navigation
 - `(no-sidebar)` - Pages without sidebar
 - `(no-layout)` - Pages with no shared layout
 
-**Key Files:**
-- `frontend/docker/docker-compose.yml` - Docker orchestration
-- `frontend/docker/.env` - Docker environment variables
-- `frontend/src/svelte.config.js` - SvelteKit configuration
-- `frontend/src/vite.config.ts` - Vite + test configuration
-- `frontend/src/eslint.config.js` - ESLint flat config
+**API Integration:**
+```typescript
+// Environment variables for API URLs
+const apiUrl = import.meta.env.VITE_API_URL;      // https://api.local
+const authUrl = import.meta.env.VITE_AUTH_URL;    // https://auth.local
+```
 
-### Backend (PHP with Docker)
+### Testing
 
-**Stack:**
-- PHP 8.1 with FPM
-- Nginx web server
-- MySQL 8.0 / PostgreSQL 14 / MongoDB 5 (profiles)
-- Redis 7
-- Adminer, MailHog, RabbitMQ
-
-**Docker Services:**
-| Service | Purpose | Port |
-|---------|---------|------|
-| `php` | PHP-FPM | - |
-| `nginx` | Web server | 80 |
-| `mysql` | Database | 3306 |
-| `postgres` | Database | 5432 |
-| `mongo` | Database | 27017 |
-| `redis` | Cache | 6379 |
-| `adminer` | DB admin | 8081 |
-| `mailhog` | Mail | 8025 |
-| `rabbitmq` | Queue | 15672 |
-
-**Database Profiles:**
-- Use `make docker-start` for MySQL
-- Use `make docker-start-postgres` for PostgreSQL
-- Use `make docker-start-mongo` for MongoDB
-
-**Key Files:**
-- `backend/docker/docker-compose.yml` - Docker orchestration
-- `backend/docker/.env` - Docker environment variables
-- `backend/docker/nginx/conf.d/` - Nginx configurations
-
-## Testing Patterns
-
-### Frontend
-- **Unit Tests**: `*.svelte.{test,spec}.{js,ts}` (jsdom environment)
-- **Server Tests**: `*.{test,spec}.{js,ts}` (node environment)
-- **E2E Tests**: `frontend/src/e2e/` (Playwright)
-- **Setup**: `frontend/src/vitest-setup-client.ts`
-
-### Backend
-- PHPUnit tests in PHP container
-
-## Environment Setup
-
-### Frontend
 ```bash
-cp frontend/docker/.env.example frontend/docker/.env
+make shell-node
+pnpm test              # All tests
+pnpm test:unit         # Vitest
+pnpm test:e2e          # Playwright
 ```
 
-### Backend
+## Backend Development
+
+### Database Profiles
+
 ```bash
-cp backend/docker/.env.example backend/docker/.env
+make start-backend-mysql     # MySQL (default)
+make start-backend-postgres  # PostgreSQL
+make start-backend-mongo     # MongoDB
 ```
 
-Add to `/etc/hosts` for backend access:
+### Xdebug
+
+Enable in `.env`:
+```ini
+XDEBUG_MODE=debug
 ```
-127.0.0.1   public.local
+
+Then restart: `make restart`
+
+## Extra Services
+
+### Keycloak
+
+Pre-configured realm `abs-app` with:
+- Clients: `abs-frontend` (public), `abs-backend` (confidential)
+- Roles: admin, user, moderator
+- Users:
+  - admin@abs.local / admin12345
+  - user@abs.local / user12345
+  - moderator@abs.local / moderator12345
+
+### Inbound Parse
+
+SendGrid Inbound Parse simulator:
+- SMTP: port 2525
+- HTTP API: port 8084
+- Routes emails to webhooks based on recipient domain
+
+Configuration: `extra-services/docker/inbound-parse/config/config.json`
+
+```json
+{
+  "routes": {
+    "parse.local": {
+      "url": "https://api.local/webhooks/inbound-email",
+      "raw": false,
+      "spam_check": true
+    }
+  }
+}
 ```
 
-## Docker Volumes
+### Greenmail
 
-### Frontend
-- `frontend_node_modules` - Node.js dependencies
-- `frontend_pnpm_store` - pnpm cache
-- `frontend_redis_data` - Redis data
+Email server with 5 pre-configured users:
+- user1 / password1 (email: user1@mail.local)
+- user2 / password2 (email: user2@mail.local)
+- user3 / password3 (email: user3@mail.local)
+- user4 / password4 (email: user4@mail.local)
+- user5 / password5 (email: user5@mail.local)
 
-### Backend
-- `mysql_data`, `postgres_data`, `mongo_data`, `redis_data`
-- `mysql_test_data`, `postgres_test_data`, `mongo_test_data` (test DBs)
+## File Reference
+
+### Important Files
+
+| File | Purpose |
+|------|---------|
+| `.env` | Global configuration (central control) |
+| `Makefile` | Global commands |
+| `extra-services/docker/docker-compose.yml` | Infrastructure services |
+| `frontend/docker/docker-compose.yml` | Frontend services |
+| `backend/docker/docker-compose.yml` | Backend services |
+| `extra-services/docker/traefik/certs/generate-certs.sh` | SSL certificate generation |
+| `extra-services/docker/keycloak/import/realm-abs-app.json` | Keycloak realm configuration |
+| `extra-services/docker/inbound-parse/config/config.json` | Email routing configuration |
+
+### Documentation
+
+See `docs/` folder for detailed documentation:
+- `00-getting-started.md` - Quick start guide
+- `01-architecture.md` - Architecture overview
+- `02-configuration.md` - Configuration details
+- `03-services.md` - Extra services documentation
+- `04-development.md` - Development guide

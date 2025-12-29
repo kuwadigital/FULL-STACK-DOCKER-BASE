@@ -1,0 +1,56 @@
+# =============================================================================
+# TRAEFIK - Middlewares
+# =============================================================================
+# Middlewares réutilisables pour tous les services
+# =============================================================================
+
+http:
+  middlewares:
+    # Sécurité - Headers
+    security-headers:
+      headers:
+        browserXssFilter: true
+        contentTypeNosniff: true
+        frameDeny: true
+        stsIncludeSubdomains: true
+        stsPreload: true
+        stsSeconds: 31536000
+        customFrameOptionsValue: "SAMEORIGIN"
+        referrerPolicy: "strict-origin-when-cross-origin"
+
+    # Compression
+    compress:
+      compress: {}
+
+    # Rate Limiting
+    rate-limit:
+      rateLimit:
+        average: 100
+        burst: 50
+        period: 1s
+
+    # CORS pour API
+    cors-api:
+      headers:
+        accessControlAllowMethods:
+          - GET
+          - POST
+          - PUT
+          - PATCH
+          - DELETE
+          - OPTIONS
+        accessControlAllowHeaders:
+          - Content-Type
+          - Authorization
+          - X-Requested-With
+        accessControlAllowOriginList:
+          - "https://app.local"
+          - "https://auth.local"
+        accessControlMaxAge: 86400
+        addVaryHeader: true
+
+    # Basic Auth (pour développement)
+    basic-auth:
+      basicAuth:
+        users:
+          - "admin:$apr1$ruca84Hq$mbjdMZBAG.KWn7vfN/SNK/"  # admin:admin

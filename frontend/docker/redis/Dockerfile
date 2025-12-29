@@ -2,7 +2,7 @@
 # Redis Dockerfile pour le cache frontend
 # =============================================================================
 
-ARG REDIS_VERSION
+ARG REDIS_VERSION=7
 FROM redis:${REDIS_VERSION}-alpine
 
 # Créer le répertoire de configuration avec les bonnes permissions

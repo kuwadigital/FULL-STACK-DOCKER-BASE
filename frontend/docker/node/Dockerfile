@@ -2,7 +2,7 @@
 # Node.js Dockerfile pour SvelteKit
 # =============================================================================
 
-ARG NODE_VERSION
+ARG NODE_VERSION=22
 FROM node:${NODE_VERSION}-alpine
 
 # Installation des dépendances système nécessaires
