@@ -145,7 +145,7 @@ Interface webmail pour consulter les emails capturés par Greenmail.
 ### Accès
 
 - **URL:** https://mail.local
-- **Connexion:** user1@mail.local / password1
+- **Connexion:** user1 / password1
 
 ### Configuration
 

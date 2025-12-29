@@ -1,0 +1,40 @@
+# =============================================================================
+# ABS-WEB - GLOBAL GITIGNORE
+# =============================================================================
+
+# Logs
+*.log
+logs/
+**/logs/**/*.log
+
+# Environment (keep examples)
+.env
+.env.*
+!.env.example
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Docker volumes data (if any local)
+**/data/
+
+# Node modules (handled by frontend/.gitignore too)
+node_modules/
+
+# Build outputs
+dist/
+build/
+.output/
+
+# Temporary files
+*.tmp
+*.temp
+.cache/

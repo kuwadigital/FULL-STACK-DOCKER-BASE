@@ -82,7 +82,7 @@ make start
 | Backend API | https://api.local | - |
 | Traefik Dashboard | https://traefik.local | - |
 | Keycloak | https://auth.local | admin / admin |
-| Roundcube | https://mail.local | user1@mail.local / password1 |
+| Roundcube | https://mail.local | user1 / password1 |
 | Inbound Parse | https://parse.local | - |
 
 ## Accès Direct (Développement)
